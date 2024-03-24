@@ -1,58 +1,45 @@
-// box1.rs
+// arc1.rs
 //
-// At compile time, Rust needs to know how much space a type takes up. This
-// becomes problematic for recursive types, where a value can have as part of
-// itself another value of the same type. To get around the issue, we can use a
-// `Box` - a smart pointer used to store data on the heap, which also allows us
-// to wrap a recursive type.
+// In this exercise, we are given a Vec of u32 called "numbers" with values
+// ranging from 0 to 99 -- [ 0, 1, 2, ..., 98, 99 ] We would like to use this
+// set of numbers within 8 different threads simultaneously. Each thread is
+// going to get the sum of every eighth value, with an offset.
 //
-// The recursive type we're implementing in this exercise is the `cons list` - a
-// data structure frequently found in functional programming languages. Each
-// item in a cons list contains two elements: the value of the current item and
-// the next item. The last item is a value called `Nil`.
+// The first thread (offset 0), will sum 0, 8, 16, ...
+// The second thread (offset 1), will sum 1, 9, 17, ...
+// The third thread (offset 2), will sum 2, 10, 18, ...
+// ...
+// The eighth thread (offset 7), will sum 7, 15, 23, ...
 //
-// Step 1: use a `Box` in the enum definition to make the code compile
-// Step 2: create both empty and non-empty cons lists by replacing `todo!()`
+// Because we are using threads, our values need to be thread-safe.  Therefore,
+// we are using Arc.  We need to make a change in each of the two TODOs.
 //
-// Note: the tests should not be changed
+// Make this code compile by filling in a value for `shared_numbers` where the
+// first TODO comment is, and create an initial binding for `child_numbers`
+// where the second TODO comment is. Try not to create any copies of the
+// `numbers` Vec!
 //
-// Execute `rustlings hint box1` or use the `hint` watch subcommand for a hint.
+// Execute `rustlings hint arc1` or use the `hint` watch subcommand for a hint.
 
-// I AM NOT DONE
 
-#[derive(PartialEq, Debug)]
-pub enum List {
-    Cons(i32, List),
-    Nil,
-}
+
+#![forbid(unused_imports)] // Do not change this, (or the next) line.
+use std::sync::Arc;
+use std::thread;
 
 fn main() {
-    println!("This is an empty cons list: {:?}", create_empty_list());
-    println!(
-        "This is a non-empty cons list: {:?}",
-        create_non_empty_list()
-    );
-}
+    let numbers: Vec<_> = (0..100u32).collect();
+    let shared_numbers =  Arc::new(numbers);// TODO
+    let mut joinhandles = Vec::new();
 
-pub fn create_empty_list() -> List {
-    todo!()
-}
-
-pub fn create_non_empty_list() -> List {
-    todo!()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_create_empty_list() {
-        assert_eq!(List::Nil, create_empty_list())
+    for offset in 0..8 {
+        let child_numbers = Arc::clone(&shared_numbers);// TODO
+        joinhandles.push(thread::spawn(move || {
+            let sum: u32 = child_numbers.iter().filter(|&&n| n % 8 == offset).sum();
+            println!("Sum of offset {} is {}", offset, sum);
+        }));
     }
-
-    #[test]
-    fn test_create_non_empty_list() {
-        assert_ne!(create_empty_list(), create_non_empty_list())
+    for handle in joinhandles.into_iter() {
+        handle.join().unwrap();
     }
 }
